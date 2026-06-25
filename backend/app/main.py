@@ -7,7 +7,7 @@ from app.core.config import settings
 app = FastAPI(title=settings.app_name)
 
 origins = [
-    "http://localhost:5173",
+    "*",
 ]
 
 app.add_middleware(
@@ -19,4 +19,3 @@ app.add_middleware(
 )
 
 app.include_router(router)
-
