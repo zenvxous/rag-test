@@ -1,10 +1,28 @@
+from contextlib import asynccontextmanager
+
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import router
-from app.core.config import settings
+from app.core.dependencies import settings
 
-app = FastAPI(title=settings.app_name)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.http_client = httpx.AsyncClient(
+        timeout=settings.http_timeout,
+        limits=httpx.Limits(
+            max_connections=settings.http_max_connections,
+            max_keepalive_connections=settings.http_keepalive_connections,
+        ),
+    )
+
+    yield
+
+    await app.state.http_client.aclose()
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 origins = [
     "*",

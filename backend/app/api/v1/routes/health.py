@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.core.dependencies import settings
 from app.db.session import get_db
 
 router = APIRouter(prefix="/health", tags=["health"])

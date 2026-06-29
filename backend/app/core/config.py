@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://ollama:11434"
     llm_model: str = "qwen2.5:1.5b"
     embedding_model: str = "nomic-embed-text"
-    ollama_timeout: int = 120
+
+    http_timeout: int = 120
+    http_max_connections: int = 100
+    http_keepalive_connections: int = 20
 
     chunk_size: int = 350
     chunk_overlap: int = 50
@@ -31,5 +34,3 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
-
-settings = Settings()
