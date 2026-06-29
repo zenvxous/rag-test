@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     s3_secret_key: str = "minioadmin123"
     s3_bucket_name: str = "pdf-documents"
     s3_region: str = "us-east-1"
+    s3_max_pool_connections: int = 20
 
     ollama_base_url: str = "http://ollama:11434"
     llm_model: str = "qwen2.5:1.5b"

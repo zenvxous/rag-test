@@ -17,3 +17,7 @@ def get_http_client(request: Request) -> httpx.AsyncClient:
     return request.app.state.http_client
 HttpClientDep = Annotated[httpx.AsyncClient, Depends(get_http_client)]
 
+@lru_cache
+def get_s3_client(request: Request):
+    return request.app.state.s3_client
+S3ClientDep = Annotated[object, Depends(get_s3_client)]
