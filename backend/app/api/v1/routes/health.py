@@ -2,14 +2,13 @@ import asyncio
 import time
 from http import HTTPStatus
 
-import boto3
 import httpx
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import settings
+from app.core.dependencies import get_http_client, get_s3_client, settings
 from app.db.session import get_db
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -39,47 +38,41 @@ async def check_database(session: AsyncSession) -> dict:
             "detail": str(e),
         }
 
-async def check_minio() -> dict:
-	started = time.perf_counter()
-	try:
-		s3 = boto3.client(
-            "s3",
-            endpoint_url=settings.s3_endpoint_url,
-            aws_access_key_id=settings.s3_access_key,
-            aws_secret_access_key=settings.s3_secret_key,
-            region_name=settings.s3_region,
-        )
+async def check_minio(s3_client) -> dict:
+    started = time.perf_counter()
+    try:
+        buckets = await s3_client.list_buckets()
+        bucket_names = [bucket["Name"] for bucket in buckets.get("Buckets", [])]
 
-		buckets = s3.list_buckets()
-		bucket_names = [bucket["Name"] for bucket in buckets.get("Buckets", [])]
-
-		if settings.s3_bucket_name not in bucket_names:
-			return {
+        if settings.s3_bucket_name not in bucket_names:
+            return {
                 "status": "error",
                 "latency_ms": round((time.perf_counter() - started) * 1000, 2),
                 "detail": f"Bucket '{settings.s3_bucket_name}' not found",
             }
 
-		return {
+        return {
             "status": "ok",
             "latency_ms": round((time.perf_counter() - started) * 1000, 2),
             "bucket": settings.s3_bucket_name,
         }
 
-	except (BotoCoreError, ClientError, Exception) as e:
-		return {
+    except (BotoCoreError, ClientError, Exception) as e:
+        return {
             "status": "error",
             "latency_ms": round((time.perf_counter() - started) * 1000, 2),
             "detail": str(e),
         }
 
-async def check_ollama() -> dict:
+async def check_ollama(http_client: httpx.AsyncClient) -> dict:
     started = time.perf_counter()
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(f"{settings.ollama_base_url}/api/tags")
-            response.raise_for_status()
-            data = response.json()
+        response = await http_client.get(
+            f"{settings.ollama_base_url}/api/tags",
+            timeout=5.0,
+        )
+        response.raise_for_status()
+        data = response.json()
 
         model_names = [model["name"] for model in data.get("models", [])]
 
@@ -111,33 +104,37 @@ async def check_ollama() -> dict:
         }
 
 @router.get("/ready")
-async def readiness_check(session: AsyncSession = Depends(get_db)):
-	db_result, minio_result, ollama_result = await asyncio.gather(
-		check_database(session=session),
-		check_minio(),
-		check_ollama(),
-	)
-	checks = {
-		"database": db_result,
-		"minio": minio_result,
-		"ollama": ollama_result,
-	}
+async def readiness_check(
+    session: AsyncSession = Depends(get_db),
+    http_client: httpx.AsyncClient = Depends(get_http_client),
+    s3_client = Depends(get_s3_client),
+):
+    db_result, minio_result, ollama_result = await asyncio.gather(
+        check_database(session=session),
+        check_minio(s3_client=s3_client),
+        check_ollama(http_client=http_client),
+    )
+    checks = {
+        "database": db_result,
+        "minio": minio_result,
+        "ollama": ollama_result,
+    }
 
-	overall_status = "ok"
-	http_status = HTTPStatus.OK
+    overall_status = "ok"
+    http_status = HTTPStatus.OK
 
-	if any(service["status"] != "ok" for service in checks.values()):
-		overall_status = "error"
-		http_status = HTTPStatus.SERVICE_UNAVAILABLE
+    if any(service["status"] != "ok" for service in checks.values()):
+        overall_status = "error"
+        http_status = HTTPStatus.SERVICE_UNAVAILABLE
 
-	payload = {
-		"status": overall_status,
-		"service": settings.app_name,
-		"environment": settings.app_env,
-		"checks": checks,
-	}
+    payload = {
+        "status": overall_status,
+        "service": settings.app_name,
+        "environment": settings.app_env,
+        "checks": checks,
+    }
 
-	if http_status != HTTPStatus.OK:
-		raise HTTPException(status_code=http_status, detail=payload)
+    if http_status != HTTPStatus.OK:
+        raise HTTPException(status_code=http_status, detail=payload)
 
-	return payload
+    return payload
