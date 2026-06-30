@@ -1,13 +1,13 @@
 import httpx
-from core.exceptions import (
+
+from app.core.dependencies import settings
+from app.db.constants import embedding_dim
+from app.exceptions.embedding import (
     EmbeddingConnectionError,
     EmbeddingDimMismatchError,
     EmbeddingTimeoutError,
     EmbeddingValidationError,
 )
-
-from app.core.dependencies import settings
-from app.db.constants import embedding_dim
 
 
 async def embed_text(text: str, client: httpx.AsyncClient) -> list[float]:
