@@ -1,6 +1,7 @@
 import asyncio
 import time
 from http import HTTPStatus
+from typing import Any
 
 import httpx
 from botocore.exceptions import BotoCoreError, ClientError
@@ -38,7 +39,7 @@ async def check_database(session: AsyncSession) -> dict:
             "detail": str(e),
         }
 
-async def check_minio(s3_client) -> dict:
+async def check_minio(s3_client: Any) -> dict:
     started = time.perf_counter()
     try:
         buckets = await s3_client.list_buckets()

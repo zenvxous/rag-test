@@ -20,7 +20,6 @@ class Status(enum.Enum):
     INDEXED = "INDEXED"
     ERROR = "ERROR"
 
-
 class Document(Base):
     __tablename__ = "documents"
 

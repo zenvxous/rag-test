@@ -25,6 +25,8 @@ class Settings(BaseSettings):
 
     chunk_size: int = 350
     chunk_overlap: int = 50
+    chunk_separators: list[str] = ["\n\n", "\n", " ", ""]
+    embed_batch_size: int = 15
     top_k_chunks: int = 3
 
     log_level: str = "INFO"

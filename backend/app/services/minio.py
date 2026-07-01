@@ -182,4 +182,3 @@ async def delete_pdf(object_key: str, s3_client) -> None:
 
     except Exception as e:
         raise MinIOUnknownError(str(e)) from e
-
