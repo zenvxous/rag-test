@@ -13,13 +13,17 @@ class Settings(BaseSettings):
     s3_secret_key: str = "minioadmin123"
     s3_bucket_name: str = "pdf-documents"
     s3_region: str = "us-east-1"
+    s3_sigrature_version: str = "s3v4"
     s3_max_pool_connections: int = 20
 
     ollama_base_url: str = "http://ollama:11434"
-    llm_model: str = "qwen2.5:1.5b"
     embedding_model: str = "nomic-embed-text"
+    llm_model: str = "qwen2.5:1.5b"
+    llm_context_length: int = 2048
+    llm_temperature: float = 0.1
 
     http_timeout: int = 120
+    http_connect_timeout: int = 5
     http_max_connections: int = 100
     http_keepalive_connections: int = 20
 

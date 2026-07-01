@@ -13,7 +13,10 @@ from app.core.dependencies import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.http_client = httpx.AsyncClient(
-        timeout=settings.http_timeout,
+        timeout=httpx.Timeout(
+            settings.http_timeout,
+            connect=settings.http_connect_timeout,
+        ),
         limits=httpx.Limits(
             max_connections=settings.http_max_connections,
             max_keepalive_connections=settings.http_keepalive_connections,
@@ -29,7 +32,7 @@ async def lifespan(app: FastAPI):
         endpoint_url=settings.s3_endpoint_url,
         region_name=settings.s3_region,
         config=BotoConfig(
-            signature_version="s3v4",
+            signature_version=settings.s3_sigrature_version,
             max_pool_connections=settings.s3_max_pool_connections,
         )
     )
